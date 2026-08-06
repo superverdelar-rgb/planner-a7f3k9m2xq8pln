@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meu Planejamento de Estudos</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+  body { font-family: 'Inter', sans-serif; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  .modal-backdrop { backdrop-filter: blur(2px); }
+  .block-card { transition: transform .12s ease, box-shadow .12s ease; }
+  .block-card:hover { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(0,0,0,.08); }
+  .fade-in { animation: fadeIn .15s ease; }
+  @keyframes fadeIn { from { opacity:0; transform: scale(.97);} to {opacity:1; transform:scale(1);} }
+</style>
+</head>
+<body class="bg-slate-900 min-h-screen flex flex-col">
+
+  <!-- Top Navbar -->
+  <header class="bg-slate-900 border-b border-slate-800 px-6 py-3 flex items-center justify-between shrink-0">
+    <div class="flex items-center space-x-2">
+      <div class="bg-emerald-500 text-slate-900 font-bold p-1.5 rounded-lg flex items-center justify-center">
+        <i class="fa-solid fa-calendar-week text-lg"></i>
+      </div>
+      <span class="text-xl font-bold tracking-tight text-white">Meu Planejamento</span>
+    </div>
+    <div class="text-sm text-slate-400 capitalize" id="today-label"></div>
+  </header>
+
+  <!-- Main -->
+  <div class="flex-1 flex flex-col bg-slate-100 text-slate-800">
+
+    <div class="bg-white border-b border-slate-200 px-8 py-4 flex items-center justify-between shadow-sm flex-wrap gap-3">
+      <h1 class="text-2xl font-bold text-slate-800">Planejamento de Estudos</h1>
+      <div class="flex items-center space-x-3">
+        <button id="btn-add" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium text-sm flex items-center space-x-2 shadow-sm transition">
+          <i class="fa-solid fa-plus"></i><span>Nova atividade</span>
+        </button>
+        <button id="btn-clear-week" class="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 px-4 py-2 rounded-lg font-medium text-sm flex items-center space-x-2 transition">
+          <i class="fa-solid fa-broom"></i><span>Limpar semana</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Meus Cursos: acesso rápido -->
+    <div class="max-w-[1600px] mx-auto w-full px-4 sm:px-6 pt-4">
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-3">
+        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 px-1">Meus cursos</h3>
+        <div id="courses-strip"></div>
+      </div>
+    </div>
+
+    <div class="p-4 sm:p-6 flex-1 flex gap-6 max-w-[1600px] mx-auto w-full flex-col lg:flex-row">
+
+      <!-- Calendar -->
+      <div class="flex-1 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col overflow-hidden min-w-0">
+        <div class="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50 flex-wrap gap-2">
+          <div class="flex items-center space-x-3">
+            <button id="btn-prev" class="w-8 h-8 rounded-lg border border-slate-300 flex items-center justify-center hover:bg-slate-100 text-slate-600"><i class="fa-solid fa-chevron-left text-xs"></i></button>
+            <span id="week-label" class="font-semibold text-slate-700 text-base"></span>
+            <button id="btn-next" class="w-8 h-8 rounded-lg border border-slate-300 flex items-center justify-center hover:bg-slate-100 text-slate-600"><i class="fa-solid fa-chevron-right text-xs"></i></button>
+          </div>
+          <button id="btn-today" class="bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-emerald-100 transition">Hoje</button>
+        </div>
+
+        <div class="flex-1 overflow-auto" style="max-height:65vh">
+          <div class="min-w-[700px]">
+            <div class="grid grid-cols-7 border-b border-slate-200 text-center bg-slate-50 font-medium text-xs text-slate-600 sticky top-0 z-10" id="days-header"></div>
+            <div class="grid grid-cols-7 divide-x divide-slate-200 bg-slate-50/50 p-2 gap-2" id="days-grid"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sidebar -->
+      <div class="w-full lg:w-80 flex flex-col space-y-6 shrink-0">
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+          <div class="flex items-center justify-between mb-3 text-sm font-semibold text-slate-700">
+            <span id="mini-month-label"></span>
+            <div class="text-xs text-slate-400 flex items-center space-x-1">
+              <button id="mini-prev" class="hover:text-slate-700 px-1.5 py-0.5"><i class="fa-solid fa-chevron-left text-[10px]"></i></button>
+              <button id="mini-next" class="hover:text-slate-700 px-1.5 py-0.5"><i class="fa-solid fa-chevron-right text-[10px]"></i></button>
+            </div>
+          </div>
+          <div class="grid grid-cols-7 text-center text-xs text-slate-500 gap-y-2 mb-2 font-medium">
+            <div>D</div><div>S</div><div>T</div><div>Q</div><div>Q</div><div>S</div><div>S</div>
+          </div>
+          <div class="grid grid-cols-7 text-center text-xs gap-y-1.5 text-slate-600" id="mini-grid"></div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider">Meus cursos</h3>
+            <button id="btn-add-course" class="text-emerald-600 hover:text-emerald-700 text-xs font-semibold flex items-center gap-1">
+              <i class="fa-solid fa-plus text-[10px]"></i>Novo
+            </button>
+          </div>
+          <div class="space-y-2" id="course-legend"></div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider">Competências</h3>
+            <button id="btn-add-competency" class="text-emerald-600 hover:text-emerald-700 text-xs font-semibold flex items-center gap-1">
+              <i class="fa-solid fa-plus text-[10px]"></i>Nova
+            </button>
+          </div>
+          <div class="space-y-1.5" id="competency-manage-list"></div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+          <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Histórico de exclusões</h3>
+          <div class="space-y-2" id="history-list"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div id="modal" class="fixed inset-0 bg-slate-900/40 modal-backdrop hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 fade-in">
+      <div class="flex items-center justify-between mb-4">
+        <h2 id="modal-title" class="text-lg font-bold text-slate-800">Nova atividade</h2>
+        <button id="modal-close" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="space-y-3">
+        <div>
+          <label class="text-xs font-semibold text-slate-500 uppercase">Curso</label>
+          <select id="f-course" class="w-full mt-1 border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white"></select>
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-slate-500 uppercase">Dia</label>
+          <input id="f-date" type="date" class="w-full mt-1 border border-slate-300 rounded-lg px-3 py-2 text-sm">
+        </div>
+        <div class="flex gap-2">
+          <button type="button" id="preset-b1" class="text-[11px] px-2 py-1 rounded border border-slate-200 text-slate-500 hover:bg-slate-50">Bloco 1 · 20:30–21:25</button>
+          <button type="button" id="preset-b2" class="text-[11px] px-2 py-1 rounded border border-slate-200 text-slate-500 hover:bg-slate-50">Bloco 2 · 21:35–22:30</button>
+        </div>
+        <div class="flex gap-3">
+          <div class="flex-1">
+            <label class="text-xs font-semibold text-slate-500 uppercase">Início</label>
+            <input id="f-start" type="time" class="w-full mt-1 border border-slate-300 rounded-lg px-3 py-2 text-sm">
+          </div>
+          <div class="flex-1">
+            <label class="text-xs font-semibold text-slate-500 uppercase">Fim</label>
+            <input id="f-end" type="time" class="w-full mt-1 border border-slate-300 rounded-lg px-3 py-2 text-sm">
+          </div>
+        </div>
+        <div class="border-t border-slate-100 pt-3">
+          <label class="text-xs font-semibold text-slate-500 uppercase">Repetir</label>
+          <div class="flex items-center gap-2 mt-1">
+            <input id="f-repeat" type="number" min="0" max="52" value="0" class="w-20 border border-slate-300 rounded-lg px-3 py-2 text-sm">
+            <span class="text-xs text-slate-500">semanas seguintes, mesmo dia e horário</span>
+          </div>
+          <div class="flex gap-2 mt-2">
+            <button type="button" class="preset-repeat text-[11px] px-2 py-1 rounded border border-slate-200 text-slate-500 hover:bg-slate-50" data-n="4">+4 semanas</button>
+            <button type="button" class="preset-repeat text-[11px] px-2 py-1 rounded border border-slate-200 text-slate-500 hover:bg-slate-50" data-n="8">+8 semanas</button>
+            <button type="button" class="preset-repeat text-[11px] px-2 py-1 rounded border border-slate-200 text-slate-500 hover:bg-slate-50" data-n="12">+12 semanas</button>
+          </div>
+        </div>
+        <p id="f-error" class="text-xs text-rose-600 hidden"></p>
+      </div>
+      <div class="flex items-center justify-between mt-6">
+        <button id="modal-delete" class="text-rose-600 hover:text-rose-700 text-sm font-medium hidden"><i class="fa-solid fa-trash-can mr-1"></i>Excluir</button>
+        <div class="flex gap-2 ml-auto">
+          <button id="modal-cancel" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100">Cancelar</button>
+          <button id="modal-save" class="px-4 py-2 rounded-lg text-sm font-medium bg-emerald-600 hover:bg-emerald-700 text-white">Salvar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de link do curso -->
+  <div id="link-modal" class="fixed inset-0 bg-slate-900/40 modal-backdrop hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 fade-in">
+      <div class="flex items-center justify-between mb-4">
+        <h2 id="link-modal-title" class="text-lg font-bold text-slate-800">Link do curso</h2>
+        <button id="link-modal-close" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <label class="text-xs font-semibold text-slate-500 uppercase">Endereço (URL)</label>
+      <input id="link-url" type="url" placeholder="https://..." class="w-full mt-1 border border-slate-300 rounded-lg px-3 py-2 text-sm">
+      <p id="link-error" class="text-xs text-rose-600 hidden mt-1"></p>
+      <div class="flex items-center justify-between mt-6">
+        <button id="link-modal-remove" class="text-rose-600 hover:text-rose-700 text-sm font-medium hidden">Remover link</button>
+        <div class="flex gap-2 ml-auto">
+          <button id="link-modal-cancel" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100">Cancelar</button>
+          <button id="link-modal-save" class="px-4 py-2 rounded-lg text-sm font-medium bg-emerald-600 hover:bg-emerald-700 text-white">Salvar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de gerenciar curso -->
+  <div id="course-modal" class="fixed inset-0 bg-slate-900/40 modal-backdrop hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 fade-in">
+      <div class="flex items-center justify-between mb-4">
+        <h2 id="course-modal-title" class="text-lg font-bold text-slate-800">Novo curso</h2>
+        <button id="course-modal-close" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="space-y-3">
+        <div>
+          <label class="text-xs font-semibold text-slate-500 uppercase">Nome do curso</label>
+          <input id="cf-name" type="text" placeholder="Nome do curso" class="w-full mt-1 border border-slate-300 rounded-lg px-3 py-2 text-sm">
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-slate-500 uppercase">Competência</label>
+          <select id="cf-competency" class="w-full mt-1 border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white"></select>
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-slate-500 uppercase">Cor</label>
+          <div id="cf-colors" class="flex flex-wrap gap-1.5 mt-1"></div>
+        </div>
+        <label class="flex items-center gap-2 cursor-pointer pt-1">
+          <input id="cf-active" type="checkbox" class="rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4">
+          <span class="text-sm text-slate-600">Curso ativo (aparece pra adicionar novas aulas)</span>
+        </label>
+        <p id="cf-error" class="text-xs text-rose-600 hidden"></p>
+        <div id="cf-future-warning" class="hidden bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800"></div>
+      </div>
+      <div class="flex items-center justify-between mt-6">
+        <button id="course-modal-delete" class="text-rose-600 hover:text-rose-700 text-sm font-medium hidden"><i class="fa-solid fa-trash-can mr-1"></i>Excluir</button>
+        <div class="flex gap-2 ml-auto">
+          <button id="course-modal-cancel" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100">Cancelar</button>
+          <button id="course-modal-save" class="px-4 py-2 rounded-lg text-sm font-medium bg-emerald-600 hover:bg-emerald-700 text-white">Salvar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de gerenciar competência -->
+  <div id="competency-modal" class="fixed inset-0 bg-slate-900/40 modal-backdrop hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 fade-in">
+      <div class="flex items-center justify-between mb-4">
+        <h2 id="competency-modal-title" class="text-lg font-bold text-slate-800">Nova competência</h2>
+        <button id="competency-modal-close" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <label class="text-xs font-semibold text-slate-500 uppercase">Nome da competência</label>
+      <input id="kf-name" type="text" placeholder="Ex: Inteligência de Mercado" class="w-full mt-1 border border-slate-300 rounded-lg px-3 py-2 text-sm">
+      <p id="kf-error" class="text-xs text-rose-600 hidden mt-1"></p>
+      <div class="flex items-center justify-between mt-6">
+        <button id="competency-modal-delete" class="text-rose-600 hover:text-rose-700 text-sm font-medium hidden"><i class="fa-solid fa-trash-can mr-1"></i>Excluir</button>
+        <div class="flex gap-2 ml-auto">
+          <button id="competency-modal-cancel" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100">Cancelar</button>
+          <button id="competency-modal-save" class="px-4 py-2 rounded-lg text-sm font-medium bg-emerald-600 hover:bg-emerald-700 text-white">Salvar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white text-sm px-4 py-2.5 rounded-lg shadow-lg opacity-0 transition-opacity duration-300 z-50"></div>
+
+<script>
+// ================= Data =================
+const COLOR_MAP = {
+  teal:   { bg:'bg-teal-50',   border:'border-teal-200',   text:'text-teal-700',   dot:'bg-teal-500' },
+  violet: { bg:'bg-violet-50', border:'border-violet-200', text:'text-violet-700', dot:'bg-violet-500' },
+  indigo: { bg:'bg-indigo-50', border:'border-indigo-200', text:'text-indigo-700', dot:'bg-indigo-500' },
+  orange: { bg:'bg-orange-50', border:'border-orange-200', text:'text-orange-700', dot:'bg-orange-500' },
+  blue:   { bg:'bg-blue-50',   border:'border-blue-200',   text:'text-blue-700',   dot:'bg-blue-500' },
+  pink:   { bg:'bg-pink-50',   border:'border-pink-200',   text:'text-pink-700',   dot:'bg-pink-500' },
+  red:    { bg:'bg-red-50',    border:'border-red-200',    text:'text-red-700',    dot:'bg-red-500' },
+  green:  { bg:'bg-green-50',  border:'border-green-200',  text:'text-green-700',  dot:'bg-green-500' },
+  stone:  { bg:'bg-stone-100', border:'border-stone-300',  text:'text-stone-700',  dot:'bg-stone-500' },
+  gray:   { bg:'bg-gray-100',  border:'border-gray-300',   text:'text-gray-400',   dot:'bg-gray-400' },
+};
+
+const DEFAULT_COURSES = [
+  { id:'faculdade',         name:'Faculdade',                 color:'teal',   active:true,  visible:true, url:'', competency:'contabilidade' },
+  { id:'reforma-dominando', name:'Dominando a Reforma Trib.',  color:'violet', active:true,  visible:true, url:'', competency:'tributacao' },
+  { id:'reforma-acao',      name:'Reforma Trib. Em Ação',      color:'indigo', active:true,  visible:true, url:'', competency:'tributacao' },
+  { id:'matematica',        name:'Matemática Comercial',       color:'orange', active:true,  visible:true, url:'', competency:'matematica-fin' },
+  { id:'ia-financeira',     name:'IA Gestão Financeira MPE',   color:'blue',   active:true,  visible:true, url:'', competency:'gestao-financeira' },
+  { id:'mamba',             name:'Mamba Academy',              color:'pink',   active:true,  visible:true, url:'', competency:'marketplace' },
+  { id:'magis5',            name:'Universidade Magis5',        color:'red',    active:true,  visible:true, url:'', competency:'marketplace' },
+  { id:'ecommerce',         name:'Ecommerce Puro',             color:'green',  active:true,  visible:true, url:'', competency:'estrategia-comercial' },
+  { id:'hashtag',           name:'Hashtag Treinamentos',       color:'stone',  active:true,  visible:true, url:'', competency:'tecnologia' },
+  { id:'joompulse',         name:'JoomPulse Academy',          color:'gray',   active:false, visible:true, url:'', competency:'marketplace' },
+];
+
+const DEFAULT_COMPETENCIES = [
+  { id:'formacao-custos',      name:'Formação de Custos' },
+  { id:'matematica-fin',       name:'Matemática Financeira' },
+  { id:'tributacao',           name:'Tributação' },
+  { id:'contabilidade',        name:'Contabilidade Gerencial' },
+  { id:'gestao-financeira',    name:'Gestão Financeira' },
+  { id:'inteligencia-mercado', name:'Inteligência de Mercado' },
+  { id:'estrategia-comercial', name:'Estratégia Comercial' },
+  { id:'marketplace',          name:'Marketplace' },
+  { id:'tecnologia',           name:'Desenvolvimento em Tecnologia' },
+  { id:'sem-competencia',      name:'Sem competência' },
+];
+let COMPETENCIES = DEFAULT_COMPETENCIES.slice();
+let HISTORY = [];
+const HISTORY_LIMIT = 5;
+function migrateHistory(list){ return Array.isArray(list) ? list.slice(0, HISTORY_LIMIT) : []; }
+function logDeletion(entry){
+  entry.id = uid();
+  entry.ts = Date.now();
+  HISTORY.unshift(entry);
+  HISTORY = HISTORY.slice(0, HISTORY_LIMIT);
+  return entry;
+}
+function relativeTime(ts){
+  const mins = Math.floor((Date.now() - ts) / 60000);
+  if (mins < 1) return 'agora mesmo';
+  if (mins < 60) return 'há ' + mins + ' min';
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return 'há ' + hours + 'h';
+  return 'há ' + Math.floor(hours / 24) + 'd';
+}
+function restoreDeletion(id){
+  const idx = HISTORY.findIndex(h => h.id === id);
+  if (idx === -1) return;
+  const entry = HISTORY[idx];
+  if (entry.type === 'course') {
+    state.courses.push(entry.data.course);
+    if (entry.data.removedBlocks && entry.data.removedBlocks.length) state.blocks.push(...entry.data.removedBlocks);
+  } else if (entry.type === 'competency') {
+    COMPETENCIES.splice(COMPETENCIES.length - 1, 0, entry.data.competency);
+    (entry.data.affectedCourseIds || []).forEach(cid => {
+      const c = courseById(cid);
+      if (c && c.competency === 'sem-competencia') c.competency = entry.data.competency.id;
+    });
+  } else if (entry.type === 'block') {
+    state.blocks.push(entry.data.block);
+  } else if (entry.type === 'blocks-bulk') {
+    state.blocks.push(...entry.data.blocks);
+  }
+  HISTORY.splice(idx, 1);
+  saveData();
+  render();
+  showToast('Restaurado.');
+}
+function competencyName(id){ const c = COMPETENCIES.find(x => x.id === id); return c ? c.name : 'Sem competência'; }
+function migrateCourses(courses){
+  const defaultsById = {};
+  DEFAULT_COURSES.forEach(c => { defaultsById[c.id] = c; });
+  courses.forEach(c => {
+    if (!c.competency) c.competency = (defaultsById[c.id] && defaultsById[c.id].competency) || 'sem-competencia';
+    if (c.url === undefined) c.url = '';
+  });
+  return courses;
+}
+function migrateCompetencies(list){
+  if (!list || !list.length) return DEFAULT_COMPETENCIES.slice();
+  if (!list.some(c => c.id === 'sem-competencia')) list.push({ id:'sem-competencia', name:'Sem competência' });
+  return list;
+}
+
+let uidCounter = 0;
+function uid(){ uidCounter++; return 'b' + Date.now().toString(36) + uidCounter; }
+
+function seedBlocks(){
+  const rows = [
+    ['2026-08-03','faculdade','reforma-dominando'],
+    ['2026-08-04','reforma-acao','mamba'],
+    ['2026-08-05','faculdade','matematica'],
+    ['2026-08-06','faculdade','magis5'],
+    ['2026-08-10','faculdade','ia-financeira'],
+    ['2026-08-11','reforma-acao','ecommerce'],
+    ['2026-08-12','faculdade','reforma-dominando'],
+    ['2026-08-13','faculdade','hashtag'],
+    ['2026-08-17','faculdade','reforma-dominando'],
+    ['2026-08-18','reforma-acao','mamba'],
+    ['2026-08-19','faculdade','matematica'],
+    ['2026-08-20','faculdade','magis5'],
+    ['2026-08-24','faculdade','ia-financeira'],
+    ['2026-08-25','reforma-acao','ecommerce'],
+    ['2026-08-26','faculdade','reforma-dominando'],
+    ['2026-08-27','faculdade','hashtag'],
+    ['2026-08-31','faculdade','reforma-dominando'],
+  ];
+  const blocks = [];
+  rows.forEach(([date,c1,c2])=>{
+    blocks.push({ id: uid(), date, start:'20:30', end:'21:25', courseId:c1, done:false });
+    blocks.push({ id: uid(), date, start:'21:35', end:'22:30', courseId:c2, done:false });
+  });
+  return blocks;
+}
+
+// ================= State =================
+const state = { courses: DEFAULT_COURSES, blocks: [] };
+let viewWeekStart = startOfWeek(new Date());
+let miniMonth = new Date(viewWeekStart.getFullYear(), viewWeekStart.getMonth(), 1);
+let editingId = null;
+let clearArmed = false;
+
+// ===== Configuração do Supabase — cole aqui a URL e a chave "anon public" do seu projeto =====
+// Onde achar: painel do Supabase → seu projeto → Project Settings → API
+const SUPABASE_URL = 'https://yngetsvgjxrjhigqikxo.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InluZ2V0c3ZnanhyamhpZ3Fpa3hvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU5ODE2NTEsImV4cCI6MjEwMTU1NzY1MX0.VKI83lged0kAxN9Xy9HNLKOtC10gu2Tiz1MmgtnWTqA';
+const SUPABASE_TABLE = 'planner_state';
+const SUPABASE_ROW_ID = 'main';
+
+const supabaseConfigured = SUPABASE_URL && SUPABASE_ANON_KEY &&
+  SUPABASE_URL.indexOf('COLE_AQUI') === -1 && SUPABASE_ANON_KEY.indexOf('COLE_AQUI') === -1;
+const supabaseClient = (supabaseConfigured && typeof window.supabase !== 'undefined')
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  : null;
+
+const hasStorage = (typeof window !== 'undefined') && !!window.storage;
+const STORAGE_KEY = 'planner-data-v1';
+
+// ================= Storage =================
+async function loadData(){
+  if (supabaseClient) {
+    try {
+      const { data, error } = await supabaseClient
+        .from(SUPABASE_TABLE).select('data').eq('id', SUPABASE_ROW_ID).maybeSingle();
+      if (error) throw error;
+      if (data && data.data) {
+        const parsed = data.data;
+        state.courses = migrateCourses((parsed.courses && parsed.courses.length) ? parsed.courses : DEFAULT_COURSES);
+        state.blocks = parsed.blocks || [];
+        COMPETENCIES = migrateCompetencies(parsed.competencies);
+        HISTORY = migrateHistory(parsed.history);
+      } else {
+        state.blocks = seedBlocks();
+        await saveData();
+      }
+      return;
+    } catch (e) {
+      showToast('Não deu pra conectar no Supabase agora — usando modo local nesta sessão.');
+      state.blocks = seedBlocks();
+      return;
+    }
+  }
+
+  // Fallback: armazenamento do próprio Claude (funciona só dentro do artefato publicado)
+  if(!hasStorage){
+    state.blocks = seedBlocks();
+    showToast('Sem Supabase configurado e sem armazenamento do Claude: as mudanças não serão salvas nesta sessão.');
+    return;
+  }
+  try {
+    const res = await window.storage.get(STORAGE_KEY, false);
+    if (res && res.value) {
+      const parsed = JSON.parse(res.value);
+      state.courses = migrateCourses((parsed.courses && parsed.courses.length) ? parsed.courses : DEFAULT_COURSES);
+      state.blocks = parsed.blocks || [];
+      COMPETENCIES = migrateCompetencies(parsed.competencies);
+      HISTORY = migrateHistory(parsed.history);
+    } else {
+      state.blocks = seedBlocks();
+      await saveData();
+    }
+  } catch (e) {
+    state.blocks = seedBlocks();
+    try { await saveData(); } catch (e2) { /* ignore */ }
+  }
+}
+
+async function saveData(){
+  const payload = { courses: state.courses, blocks: state.blocks, competencies: COMPETENCIES, history: HISTORY };
+
+  if (supabaseClient) {
+    try {
+      const { error } = await supabaseClient
+        .from(SUPABASE_TABLE)
+        .upsert({ id: SUPABASE_ROW_ID, data: payload, updated_at: new Date().toISOString() });
+      if (error) throw error;
+      return;
+    } catch (e) {
+      showToast('Não foi possível salvar no Supabase agora.');
+      return;
+    }
+  }
+
+  if(!hasStorage) return;
+  try {
+    await window.storage.set(STORAGE_KEY, JSON.stringify(payload), false);
+  } catch (e) {
+    showToast('Não foi possível salvar agora.');
+  }
+}
+
+// ================= Date helpers =================
+function startOfWeek(d){
+  const nd = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  nd.setDate(nd.getDate() - nd.getDay());
+  return nd;
+}
+function addDays(d, n){ const nd = new Date(d); nd.setDate(nd.getDate() + n); return nd; }
+function fmtISO(d){ return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+function fmtDayLabel(d){
+  const names = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  return names[d.getDay()] + ', ' + d.getDate();
+}
+const MONTH_NAMES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+function courseById(id){ return state.courses.find(c => c.id === id); }
+function escapeHtml(s){ const div = document.createElement('div'); div.textContent = s == null ? '' : s; return div.innerHTML; }
+
+// ================= Render =================
+function render(){
+  renderWeekLabel();
+  renderDaysHeader();
+  renderDaysGrid();
+  renderMiniCalendar();
+  renderLegend();
+  renderCompetencyManageList();
+  renderCoursesStrip();
+  renderHistoryList();
+}
+
+function renderHistoryList(){
+  const el = document.getElementById('history-list');
+  el.innerHTML = '';
+  if (HISTORY.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'text-xs text-slate-400';
+    empty.textContent = 'Nada por aqui ainda.';
+    el.appendChild(empty);
+    return;
+  }
+  HISTORY.forEach(entry => {
+    const row = document.createElement('div');
+    row.className = 'flex items-center justify-between gap-2 text-xs bg-slate-50 rounded-lg px-2.5 py-2';
+
+    const info = document.createElement('div');
+    info.className = 'min-w-0';
+    const label = document.createElement('div');
+    label.className = 'text-slate-700 font-medium truncate';
+    label.title = entry.label;
+    label.textContent = entry.label;
+    const time = document.createElement('div');
+    time.className = 'text-slate-400 text-[10px]';
+    time.textContent = relativeTime(entry.ts);
+    info.appendChild(label); info.appendChild(time);
+
+    const restoreBtn = document.createElement('button');
+    restoreBtn.className = 'text-emerald-600 hover:text-emerald-700 font-semibold shrink-0';
+    restoreBtn.textContent = 'Restaurar';
+    restoreBtn.onclick = () => restoreDeletion(entry.id);
+
+    row.appendChild(info);
+    row.appendChild(restoreBtn);
+    el.appendChild(row);
+  });
+}
+
+function renderCoursesStrip(){
+  const el = document.getElementById('courses-strip');
+  el.innerHTML = '';
+  const activeCourses = state.courses.filter(c => c.active !== false);
+
+  COMPETENCIES.forEach(comp => {
+    const group = activeCourses.filter(c => (c.competency || 'sem-competencia') === comp.id);
+    if (group.length === 0) return;
+
+    const section = document.createElement('div');
+    section.className = 'mb-4 last:mb-0';
+
+    const title = document.createElement('h4');
+    title.className = 'text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5';
+    title.textContent = comp.name;
+    section.appendChild(title);
+
+    const row = document.createElement('div');
+    row.className = 'flex flex-wrap gap-2';
+    group.forEach(c => row.appendChild(renderCoursePill(c)));
+    section.appendChild(row);
+
+    el.appendChild(section);
+  });
+}
+
+function renderCoursePill(c){
+  const cm = COLOR_MAP[c.color] || COLOR_MAP.gray;
+  const card = document.createElement('div');
+  card.className = 'flex items-center gap-1.5 ' + cm.bg + ' border ' + cm.border + ' rounded-lg pl-3 pr-1.5 py-1.5 text-sm shrink-0 whitespace-nowrap';
+
+  const nameSpan = document.createElement('span');
+  nameSpan.className = cm.text + ' font-semibold';
+  nameSpan.textContent = c.name;
+  card.appendChild(nameSpan);
+
+  if (c.url) {
+    const a = document.createElement('a');
+    a.href = c.url; a.target = '_blank'; a.rel = 'noopener noreferrer';
+    a.title = 'Abrir ' + c.name;
+    a.className = 'w-7 h-7 rounded-md flex items-center justify-center bg-white/70 hover:bg-white text-slate-600 hover:text-emerald-600 border ' + cm.border;
+    a.innerHTML = '<i class="fa-solid fa-arrow-up-right-from-square text-xs"></i>';
+    card.appendChild(a);
+
+    const editBtn = document.createElement('button');
+    editBtn.title = 'Editar link';
+    editBtn.className = 'w-7 h-7 rounded-md flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-white/70';
+    editBtn.innerHTML = '<i class="fa-solid fa-pen text-[10px]"></i>';
+    editBtn.onclick = () => openLinkModal(c);
+    card.appendChild(editBtn);
+  } else {
+    const addBtn = document.createElement('button');
+    addBtn.className = 'text-xs px-2 py-1 rounded-md border border-dashed ' + cm.border + ' text-slate-400 hover:text-emerald-600 hover:border-emerald-300 transition';
+    addBtn.innerHTML = '<i class="fa-solid fa-link text-[10px] mr-1"></i>Link';
+    addBtn.onclick = () => openLinkModal(c);
+    card.appendChild(addBtn);
+  }
+
+  return card;
+}
+
+let linkEditingCourseId = null;
+function openLinkModal(course){
+  linkEditingCourseId = course.id;
+  document.getElementById('link-modal-title').textContent = 'Link · ' + course.name;
+  document.getElementById('link-url').value = course.url || '';
+  document.getElementById('link-error').classList.add('hidden');
+  document.getElementById('link-modal-remove').classList.toggle('hidden', !course.url);
+  document.getElementById('link-modal').classList.remove('hidden');
+  document.getElementById('link-modal').classList.add('flex');
+}
+function closeLinkModal(){
+  document.getElementById('link-modal').classList.add('hidden');
+  document.getElementById('link-modal').classList.remove('flex');
+  linkEditingCourseId = null;
+}
+document.getElementById('link-modal-close').onclick = closeLinkModal;
+document.getElementById('link-modal-cancel').onclick = closeLinkModal;
+document.getElementById('link-modal').addEventListener('click', (e) => { if (e.target.id === 'link-modal') closeLinkModal(); });
+
+document.getElementById('link-modal-save').onclick = async () => {
+  const val = document.getElementById('link-url').value.trim();
+  const errEl = document.getElementById('link-error');
+  if (val && !/^https?:\/\//i.test(val)) {
+    errEl.textContent = 'O link precisa começar com http:// ou https://';
+    errEl.classList.remove('hidden');
+    return;
+  }
+  errEl.classList.add('hidden');
+  const course = courseById(linkEditingCourseId);
+  if (course) course.url = val;
+  await saveData();
+  closeLinkModal();
+  renderCoursesStrip();
+  showToast('Link salvo.');
+};
+document.getElementById('link-modal-remove').onclick = async () => {
+  const course = courseById(linkEditingCourseId);
+  if (course) course.url = '';
+  await saveData();
+  closeLinkModal();
+  renderCoursesStrip();
+  showToast('Link removido.');
+};
+
+// ================= Curso: adicionar / editar / excluir =================
+function slugify(text){
+  return text.toString().toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'item';
+}
+function nextAvailableColor(){
+  const used = new Set(state.courses.map(c => c.color));
+  const palette = Object.keys(COLOR_MAP);
+  return palette.find(c => !used.has(c)) || palette[state.courses.length % palette.length];
+}
+
+let courseEditingId = null;
+let courseDeleteArmed = false;
+
+function openCourseModal(course){
+  courseEditingId = course ? course.id : null;
+  courseDeleteArmed = false;
+  document.getElementById('cf-error').classList.add('hidden');
+  document.getElementById('cf-future-warning').classList.add('hidden');
+  document.getElementById('course-modal-title').textContent = course ? 'Editar curso' : 'Novo curso';
+  document.getElementById('course-modal-delete').classList.toggle('hidden', !course);
+  document.getElementById('course-modal-delete').innerHTML = '<i class="fa-solid fa-trash-can mr-1"></i>Excluir';
+
+  document.getElementById('cf-name').value = course ? course.name : '';
+  document.getElementById('cf-active').checked = course ? (course.active !== false) : true;
+
+  const sel = document.getElementById('cf-competency');
+  sel.innerHTML = '';
+  COMPETENCIES.forEach(comp => {
+    const opt = document.createElement('option');
+    opt.value = comp.id; opt.textContent = comp.name;
+    sel.appendChild(opt);
+  });
+  sel.value = course ? (course.competency || 'sem-competencia') : 'sem-competencia';
+
+  const colorWrap = document.getElementById('cf-colors');
+  colorWrap.innerHTML = '';
+  const chosenColor = course ? course.color : nextAvailableColor();
+  colorWrap.dataset.selected = chosenColor;
+  Object.keys(COLOR_MAP).forEach(colorKey => {
+    const cm = COLOR_MAP[colorKey];
+    const swatch = document.createElement('button');
+    swatch.type = 'button';
+    swatch.className = 'w-7 h-7 rounded-full ' + cm.dot + ' flex items-center justify-center border-2 ' +
+      (colorKey === chosenColor ? 'border-slate-700' : 'border-transparent');
+    swatch.title = colorKey;
+    swatch.onclick = () => {
+      colorWrap.dataset.selected = colorKey;
+      Array.from(colorWrap.children).forEach(ch => ch.classList.remove('border-slate-700'));
+      Array.from(colorWrap.children).forEach(ch => ch.classList.add('border-transparent'));
+      swatch.classList.remove('border-transparent');
+      swatch.classList.add('border-slate-700');
+    };
+    colorWrap.appendChild(swatch);
+  });
+
+  document.getElementById('course-modal').classList.remove('hidden');
+  document.getElementById('course-modal').classList.add('flex');
+}
+function closeCourseModal(){
+  document.getElementById('course-modal').classList.add('hidden');
+  document.getElementById('course-modal').classList.remove('flex');
+  courseEditingId = null;
+  courseDeleteArmed = false;
+}
+document.getElementById('btn-add-course').onclick = () => openCourseModal(null);
+document.getElementById('course-modal-close').onclick = closeCourseModal;
+document.getElementById('course-modal-cancel').onclick = closeCourseModal;
+document.getElementById('course-modal').addEventListener('click', (e) => { if (e.target.id === 'course-modal') closeCourseModal(); });
+
+document.getElementById('course-modal-save').onclick = async () => {
+  const name = document.getElementById('cf-name').value.trim();
+  const competency = document.getElementById('cf-competency').value;
+  const color = document.getElementById('cf-colors').dataset.selected;
+  const active = document.getElementById('cf-active').checked;
+  const errEl = document.getElementById('cf-error');
+
+  if (!name) {
+    errEl.textContent = 'Dê um nome pro curso.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+  errEl.classList.add('hidden');
+
+  if (courseEditingId) {
+    const c = courseById(courseEditingId);
+    if (c) { c.name = name; c.competency = competency; c.color = color; c.active = active; }
+  } else {
+    let id = slugify(name);
+    while (courseById(id)) id = id + '-' + Math.random().toString(36).slice(2,5);
+    state.courses.push({ id, name, color, active, visible:true, url:'', competency });
+  }
+  await saveData();
+  closeCourseModal();
+  render();
+  showToast('Salvo.');
+};
+
+document.getElementById('course-modal-delete').onclick = async () => {
+  const course = courseById(courseEditingId);
+  if (!course) return;
+  const todayISO = fmtISO(new Date());
+  const futureBlocks = state.blocks.filter(b => b.courseId === course.id && b.date >= todayISO);
+
+  if (futureBlocks.length > 0 && !courseDeleteArmed) {
+    courseDeleteArmed = true;
+    const warnEl = document.getElementById('cf-future-warning');
+    warnEl.textContent = 'Este curso tem ' + futureBlocks.length + ' aula(s) futura(s) agendada(s). Clique novamente em "Excluir" para decidir o que fazer com elas.';
+    warnEl.classList.remove('hidden');
+    document.getElementById('course-modal-delete').innerHTML = '<i class="fa-solid fa-trash-can mr-1"></i>Excluir mesmo assim';
+    return;
+  }
+
+  if (futureBlocks.length > 0 && courseDeleteArmed) {
+    const warnEl = document.getElementById('cf-future-warning');
+    warnEl.innerHTML = '';
+    const q = document.createElement('div');
+    q.className = 'flex flex-col gap-2';
+    const msg = document.createElement('span');
+    msg.textContent = 'Manter as ' + futureBlocks.length + ' aula(s) futura(s) (só o curso some), ou excluir as aulas também?';
+    q.appendChild(msg);
+    const row = document.createElement('div');
+    row.className = 'flex gap-2';
+    const keepBtn = document.createElement('button');
+    keepBtn.className = 'flex-1 px-2 py-1.5 rounded-md bg-white border border-amber-300 text-amber-800 text-xs font-medium hover:bg-amber-100';
+    keepBtn.textContent = 'Manter aulas';
+    keepBtn.onclick = async () => { await finalizeCourseDelete(course, false); };
+    const dropBtn = document.createElement('button');
+    dropBtn.className = 'flex-1 px-2 py-1.5 rounded-md bg-rose-600 text-white text-xs font-medium hover:bg-rose-700';
+    dropBtn.textContent = 'Excluir aulas também';
+    dropBtn.onclick = async () => { await finalizeCourseDelete(course, true); };
+    row.appendChild(keepBtn); row.appendChild(dropBtn);
+    q.appendChild(row);
+    warnEl.appendChild(q);
+    document.getElementById('course-modal-delete').classList.add('hidden');
+    return;
+  }
+
+  // sem aulas futuras: exclui direto (confirmação simples em 2 cliques)
+  if (!courseDeleteArmed) {
+    courseDeleteArmed = true;
+    document.getElementById('course-modal-delete').innerHTML = '<i class="fa-solid fa-check mr-1"></i>Confirmar exclusão';
+    return;
+  }
+  await finalizeCourseDelete(course, false);
+};
+
+async function finalizeCourseDelete(course, dropFutureBlocks){
+  const todayISO = fmtISO(new Date());
+  let removedBlocks = [];
+  if (dropFutureBlocks) {
+    removedBlocks = state.blocks.filter(b => b.courseId === course.id && b.date >= todayISO);
+    state.blocks = state.blocks.filter(b => !(b.courseId === course.id && b.date >= todayISO));
+  }
+  state.courses = state.courses.filter(c => c.id !== course.id);
+  const entry = logDeletion({ type:'course', label:'Curso: ' + course.name, data:{ course, removedBlocks } });
+  await saveData();
+  closeCourseModal();
+  render();
+  showToast('"' + course.name + '" removido.', () => restoreDeletion(entry.id));
+}
+
+// ================= Competência: adicionar / editar / excluir =================
+let competencyEditingId = null;
+let competencyDeleteArmed = false;
+function openCompetencyModal(comp){
+  competencyEditingId = comp ? comp.id : null;
+  document.getElementById('kf-error').classList.add('hidden');
+  document.getElementById('competency-modal-title').textContent = comp ? 'Editar competência' : 'Nova competência';
+  document.getElementById('kf-name').value = comp ? comp.name : '';
+  document.getElementById('competency-modal-delete').classList.toggle('hidden', !comp);
+  document.getElementById('competency-modal-delete').innerHTML = '<i class="fa-solid fa-trash-can mr-1"></i>Excluir';
+  competencyDeleteArmed = false;
+  document.getElementById('competency-modal').classList.remove('hidden');
+  document.getElementById('competency-modal').classList.add('flex');
+}
+function closeCompetencyModal(){
+  document.getElementById('competency-modal').classList.add('hidden');
+  document.getElementById('competency-modal').classList.remove('flex');
+  competencyEditingId = null;
+}
+document.getElementById('btn-add-competency').onclick = () => openCompetencyModal(null);
+document.getElementById('competency-modal-close').onclick = closeCompetencyModal;
+document.getElementById('competency-modal-cancel').onclick = closeCompetencyModal;
+document.getElementById('competency-modal').addEventListener('click', (e) => { if (e.target.id === 'competency-modal') closeCompetencyModal(); });
+
+document.getElementById('competency-modal-save').onclick = async () => {
+  const name = document.getElementById('kf-name').value.trim();
+  const errEl = document.getElementById('kf-error');
+  if (!name) {
+    errEl.textContent = 'Dê um nome pra competência.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+  errEl.classList.add('hidden');
+
+  if (competencyEditingId) {
+    const comp = COMPETENCIES.find(x => x.id === competencyEditingId);
+    if (comp) comp.name = name;
+  } else {
+    let id = slugify(name);
+    while (COMPETENCIES.some(x => x.id === id)) id = id + '-' + Math.random().toString(36).slice(2,5);
+    COMPETENCIES.splice(COMPETENCIES.length - 1, 0, { id, name }); // antes de "Sem competência"
+  }
+  await saveData();
+  closeCompetencyModal();
+  render();
+  showToast('Salvo.');
+};
+
+document.getElementById('competency-modal-delete').onclick = async () => {
+  const idx = COMPETENCIES.findIndex(x => x.id === competencyEditingId);
+  if (idx === -1) return;
+  if (!competencyDeleteArmed) {
+    competencyDeleteArmed = true;
+    document.getElementById('competency-modal-delete').innerHTML = '<i class="fa-solid fa-check mr-1"></i>Confirmar exclusão';
+    return;
+  }
+  const comp = COMPETENCIES[idx];
+  const affectedCourseIds = state.courses.filter(c => c.competency === comp.id).map(c => c.id);
+  state.courses.forEach(c => { if (c.competency === comp.id) c.competency = 'sem-competencia'; });
+  COMPETENCIES.splice(idx, 1);
+  const entry = logDeletion({ type:'competency', label:'Competência: ' + comp.name, data:{ competency: comp, affectedCourseIds } });
+  await saveData();
+  closeCompetencyModal();
+  render();
+  showToast('"' + comp.name + '" removida.', () => restoreDeletion(entry.id));
+};
+
+function renderWeekLabel(){
+  const end = addDays(viewWeekStart, 6);
+  const sameMonth = viewWeekStart.getMonth() === end.getMonth();
+  const label = sameMonth
+    ? `${viewWeekStart.getDate()} – ${end.getDate()} de ${MONTH_NAMES[end.getMonth()]}, ${end.getFullYear()}`
+    : `${viewWeekStart.getDate()} ${MONTH_NAMES[viewWeekStart.getMonth()].slice(0,3)} – ${end.getDate()} ${MONTH_NAMES[end.getMonth()].slice(0,3)}, ${end.getFullYear()}`;
+  document.getElementById('week-label').textContent = label;
+}
+
+function renderDaysHeader(){
+  const el = document.getElementById('days-header');
+  el.innerHTML = '';
+  const todayISO = fmtISO(new Date());
+  for(let i=0;i<7;i++){
+    const d = addDays(viewWeekStart, i);
+    const iso = fmtISO(d);
+    const isToday = iso === todayISO;
+    const isWeekend = i===0 || i===6;
+    const div = document.createElement('div');
+    div.className = 'py-3 border-r border-slate-200 last:border-r-0' +
+      (isToday ? ' bg-emerald-50 text-emerald-800 font-bold border-t-2 border-t-emerald-500' : (isWeekend ? ' bg-orange-50/60' : ''));
+    div.textContent = fmtDayLabel(d);
+    el.appendChild(div);
+  }
+}
+
+function renderDaysGrid(){
+  const el = document.getElementById('days-grid');
+  el.innerHTML = '';
+  for(let i=0;i<7;i++){
+    const d = addDays(viewWeekStart, i);
+    const iso = fmtISO(d);
+    const isWeekend = i===0 || i===6;
+    const col = document.createElement('div');
+    col.className = 'flex flex-col space-y-2 min-h-[90px] rounded-lg p-1' + (isWeekend ? ' bg-orange-50/30' : '');
+
+    const dayBlocks = state.blocks
+      .filter(b => b.date === iso)
+      .filter(b => { const c = courseById(b.courseId); return !c || c.visible !== false; })
+      .sort((a,b) => a.start.localeCompare(b.start));
+
+    dayBlocks.forEach(b => col.appendChild(renderBlockCard(b)));
+
+    const addBtn = document.createElement('button');
+    addBtn.className = 'text-xs text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg py-1.5 border border-dashed border-slate-200 hover:border-emerald-300 transition flex items-center justify-center gap-1';
+    addBtn.innerHTML = '<i class="fa-solid fa-plus text-[10px]"></i> Adicionar';
+    addBtn.onclick = () => openModal({ date: iso });
+    col.appendChild(addBtn);
+
+    el.appendChild(col);
+  }
+}
+
+function renderBlockCard(b){
+  const course = courseById(b.courseId) || { name:'(curso removido)', color:'gray' };
+  const c = COLOR_MAP[course.color] || COLOR_MAP.gray;
+  const card = document.createElement('div');
+  card.className = 'block-card ' + c.bg + ' border ' + c.border + ' rounded-lg p-2.5 text-xs cursor-pointer' + (b.done ? ' opacity-60' : '');
+  card.innerHTML =
+    '<div class="flex items-start justify-between gap-1">' +
+      '<span class="' + c.text + ' font-bold leading-snug' + (b.done ? ' line-through' : '') + '">' + escapeHtml(course.name) + '</span>' +
+      '<button class="done-toggle text-slate-400 hover:text-emerald-600 shrink-0" title="Marcar como concluído">' +
+        '<i class="fa-regular ' + (b.done ? 'fa-square-check' : 'fa-square') + '"></i>' +
+      '</button>' +
+    '</div>' +
+    '<div class="flex justify-end text-[10px] text-slate-500 mt-1.5">' +
+      '<span class="bg-white/70 px-1.5 py-0.5 rounded border ' + c.border + '"><i class="fa-regular fa-clock mr-1"></i>' + b.start + '–' + b.end + '</span>' +
+    '</div>';
+  card.querySelector('.done-toggle').onclick = (e) => {
+    e.stopPropagation();
+    b.done = !b.done;
+    saveData();
+    render();
+  };
+  card.onclick = () => openModal(b);
+  return card;
+}
+
+function renderMiniCalendar(){
+  document.getElementById('mini-month-label').textContent =
+    MONTH_NAMES[miniMonth.getMonth()].slice(0,3).toUpperCase() + '. ' + miniMonth.getFullYear();
+  const grid = document.getElementById('mini-grid');
+  grid.innerHTML = '';
+  const first = new Date(miniMonth.getFullYear(), miniMonth.getMonth(), 1);
+  const startGrid = startOfWeek(first);
+  const todayISO = fmtISO(new Date());
+  const weekEnd = addDays(viewWeekStart, 6);
+  for(let i=0;i<42;i++){
+    const d = addDays(startGrid, i);
+    const iso = fmtISO(d);
+    const inMonth = d.getMonth() === miniMonth.getMonth();
+    const inViewWeek = d >= viewWeekStart && d <= weekEnd;
+    const isToday = iso === todayISO;
+    const span = document.createElement('span');
+    span.textContent = d.getDate();
+    let cls = 'rounded-full w-6 h-6 flex items-center justify-center mx-auto cursor-pointer ';
+    if (!inMonth) cls += 'text-slate-300 hover:text-slate-400';
+    else if (isToday) cls += 'bg-emerald-600 text-white font-bold';
+    else if (inViewWeek) cls += 'bg-emerald-100 text-emerald-800 font-bold';
+    else cls += 'text-slate-600 hover:bg-slate-100';
+    span.className = cls;
+    span.onclick = () => { viewWeekStart = startOfWeek(d); miniMonth = new Date(viewWeekStart.getFullYear(), viewWeekStart.getMonth(), 1); render(); };
+    grid.appendChild(span);
+  }
+}
+
+function renderLegend(){
+  const el = document.getElementById('course-legend');
+  el.innerHTML = '';
+  state.courses.forEach(c => {
+    const cm = COLOR_MAP[c.color] || COLOR_MAP.gray;
+    const row = document.createElement('div');
+    row.className = 'flex items-center gap-2 text-sm text-slate-700' + (c.active === false ? ' opacity-50' : '');
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = c.visible !== false;
+    checkbox.className = 'rounded text-emerald-600 focus:ring-emerald-500 w-4 h-4 shrink-0';
+    checkbox.onchange = (e) => { c.visible = e.target.checked; saveData(); renderDaysGrid(); };
+    row.appendChild(checkbox);
+
+    const dot = document.createElement('span');
+    dot.className = 'w-2.5 h-2.5 rounded-full ' + cm.dot + ' inline-block shrink-0';
+    row.appendChild(dot);
+
+    const name = document.createElement('span');
+    name.className = 'flex-1 truncate cursor-pointer';
+    name.title = c.name;
+    name.textContent = c.name;
+    name.onclick = () => openCourseModal(c);
+    row.appendChild(name);
+
+    const editBtn = document.createElement('button');
+    editBtn.title = 'Editar curso';
+    editBtn.className = 'text-slate-400 hover:text-emerald-600 shrink-0 px-1';
+    editBtn.innerHTML = '<i class="fa-solid fa-pen text-[11px]"></i>';
+    editBtn.onclick = () => openCourseModal(c);
+    row.appendChild(editBtn);
+
+    el.appendChild(row);
+  });
+}
+
+function renderCompetencyManageList(){
+  const el = document.getElementById('competency-manage-list');
+  el.innerHTML = '';
+  COMPETENCIES.filter(comp => comp.id !== 'sem-competencia').forEach(comp => {
+    const count = state.courses.filter(c => (c.competency || 'sem-competencia') === comp.id).length;
+    const row = document.createElement('div');
+    row.className = 'flex items-center gap-2 text-sm text-slate-700';
+
+    const name = document.createElement('span');
+    name.className = 'flex-1 truncate cursor-pointer';
+    name.title = comp.name;
+    name.textContent = comp.name;
+    name.onclick = () => openCompetencyModal(comp);
+    row.appendChild(name);
+
+    const countBadge = document.createElement('span');
+    countBadge.className = 'text-[10px] text-slate-400 shrink-0';
+    countBadge.textContent = count;
+    row.appendChild(countBadge);
+
+    const editBtn = document.createElement('button');
+    editBtn.title = 'Editar competência';
+    editBtn.className = 'text-slate-400 hover:text-emerald-600 shrink-0 px-1';
+    editBtn.innerHTML = '<i class="fa-solid fa-pen text-[11px]"></i>';
+    editBtn.onclick = () => openCompetencyModal(comp);
+    row.appendChild(editBtn);
+
+    el.appendChild(row);
+  });
+}
+
+// ================= Modal =================
+function openModal(data){
+  editingId = data.id || null;
+  document.getElementById('f-error').classList.add('hidden');
+  document.getElementById('modal-title').textContent = editingId ? 'Editar atividade' : 'Nova atividade';
+  document.getElementById('modal-delete').classList.toggle('hidden', !editingId);
+
+  const sel = document.getElementById('f-course');
+  sel.innerHTML = '';
+  state.courses.filter(c => c.active !== false).forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.id; opt.textContent = c.name;
+    sel.appendChild(opt);
+  });
+  const firstActive = state.courses.find(c => c.active !== false);
+  sel.value = data.courseId || (firstActive ? firstActive.id : '');
+
+  document.getElementById('f-date').value = data.date || fmtISO(new Date());
+  document.getElementById('f-start').value = data.start || '20:30';
+  document.getElementById('f-end').value = data.end || '21:25';
+  document.getElementById('f-repeat').value = '0';
+
+  document.getElementById('modal').classList.remove('hidden');
+  document.getElementById('modal').classList.add('flex');
+}
+
+function closeModal(){
+  document.getElementById('modal').classList.add('hidden');
+  document.getElementById('modal').classList.remove('flex');
+  editingId = null;
+}
+
+document.getElementById('modal-close').onclick = closeModal;
+document.getElementById('modal-cancel').onclick = closeModal;
+document.getElementById('modal').addEventListener('click', (e) => { if (e.target.id === 'modal') closeModal(); });
+
+document.getElementById('preset-b1').onclick = () => {
+  document.getElementById('f-start').value = '20:30';
+  document.getElementById('f-end').value = '21:25';
+};
+document.getElementById('preset-b2').onclick = () => {
+  document.getElementById('f-start').value = '21:35';
+  document.getElementById('f-end').value = '22:30';
+};
+document.querySelectorAll('.preset-repeat').forEach(btn => {
+  btn.onclick = () => { document.getElementById('f-repeat').value = btn.dataset.n; };
+});
+
+document.getElementById('modal-save').onclick = async () => {
+  const courseId = document.getElementById('f-course').value;
+  const date = document.getElementById('f-date').value;
+  const start = document.getElementById('f-start').value;
+  const end = document.getElementById('f-end').value;
+  const repeatWeeks = Math.max(0, Math.min(52, parseInt(document.getElementById('f-repeat').value, 10) || 0));
+  const errEl = document.getElementById('f-error');
+
+  if (!courseId || !date || !start || !end) {
+    errEl.textContent = 'Preencha todos os campos.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+  if (end <= start) {
+    errEl.textContent = 'O horário de fim precisa ser depois do início.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+  errEl.classList.add('hidden');
+
+  if (editingId) {
+    const b = state.blocks.find(x => x.id === editingId);
+    if (b) { b.courseId = courseId; b.date = date; b.start = start; b.end = end; }
+  } else {
+    state.blocks.push({ id: uid(), courseId, date, start, end, done:false });
+  }
+
+  // Repetir nas próximas semanas (mesmo dia da semana e horário)
+  let repeated = 0;
+  if (repeatWeeks > 0) {
+    const baseDate = new Date(date + 'T00:00:00');
+    for (let i = 1; i <= repeatWeeks; i++) {
+      const futureIso = fmtISO(addDays(baseDate, 7 * i));
+      const alreadyThere = state.blocks.some(b => b.date === futureIso && b.start === start && b.end === end && b.courseId === courseId);
+      if (!alreadyThere) {
+        state.blocks.push({ id: uid(), courseId, date: futureIso, start, end, done:false });
+        repeated++;
+      }
+    }
+  }
+
+  await saveData();
+  closeModal();
+  render();
+  showToast(repeated > 0 ? `Salvo. Repetido em mais ${repeated} semana${repeated>1?'s':''}.` : 'Salvo.');
+};
+
+document.getElementById('modal-delete').onclick = async () => {
+  if (!editingId) return;
+  const block = state.blocks.find(b => b.id === editingId);
+  state.blocks = state.blocks.filter(b => b.id !== editingId);
+  let entry = null;
+  if (block) {
+    const c = courseById(block.courseId);
+    entry = logDeletion({ type:'block', label:'Aula: ' + (c ? c.name : block.courseId) + ' (' + block.date + ')', data:{ block } });
+  }
+  await saveData();
+  closeModal();
+  render();
+  showToast('Atividade removida.', entry ? () => restoreDeletion(entry.id) : undefined);
+};
+
+// ================= Top controls =================
+document.getElementById('btn-add').onclick = () => openModal({ date: fmtISO(new Date()) });
+
+document.getElementById('btn-prev').onclick = () => { viewWeekStart = addDays(viewWeekStart, -7); miniMonth = new Date(viewWeekStart.getFullYear(), viewWeekStart.getMonth(), 1); render(); };
+document.getElementById('btn-next').onclick = () => { viewWeekStart = addDays(viewWeekStart, 7); miniMonth = new Date(viewWeekStart.getFullYear(), viewWeekStart.getMonth(), 1); render(); };
+document.getElementById('btn-today').onclick = () => { viewWeekStart = startOfWeek(new Date()); miniMonth = new Date(viewWeekStart.getFullYear(), viewWeekStart.getMonth(), 1); render(); };
+document.getElementById('mini-prev').onclick = () => { miniMonth = new Date(miniMonth.getFullYear(), miniMonth.getMonth()-1, 1); renderMiniCalendar(); };
+document.getElementById('mini-next').onclick = () => { miniMonth = new Date(miniMonth.getFullYear(), miniMonth.getMonth()+1, 1); renderMiniCalendar(); };
+
+document.getElementById('btn-clear-week').onclick = async () => {
+  const btn = document.getElementById('btn-clear-week');
+  const label = btn.querySelector('span');
+  if (!clearArmed) {
+    clearArmed = true;
+    label.textContent = 'Confirmar?';
+    setTimeout(() => { clearArmed = false; label.textContent = 'Limpar semana'; }, 3000);
+    return;
+  }
+  clearArmed = false;
+  label.textContent = 'Limpar semana';
+  const start = fmtISO(viewWeekStart);
+  const end = fmtISO(addDays(viewWeekStart, 6));
+  const removed = state.blocks.filter(b => b.date >= start && b.date <= end);
+  state.blocks = state.blocks.filter(b => !(b.date >= start && b.date <= end));
+  let entry = null;
+  if (removed.length) {
+    entry = logDeletion({ type:'blocks-bulk', label: removed.length + ' aula(s) — limpar semana', data:{ blocks: removed } });
+  }
+  await saveData();
+  render();
+  showToast('Semana limpa.', entry ? () => restoreDeletion(entry.id) : undefined);
+};
+
+// ================= Toast =================
+let toastTimer = null;
+function showToast(msg, undoFn){
+  const t = document.getElementById('toast');
+  t.innerHTML = '';
+  const msgSpan = document.createElement('span');
+  msgSpan.textContent = msg;
+  t.appendChild(msgSpan);
+  if (undoFn) {
+    const btn = document.createElement('button');
+    btn.className = 'ml-3 underline font-semibold hover:text-emerald-300';
+    btn.textContent = 'Desfazer';
+    btn.onclick = () => { undoFn(); };
+    t.appendChild(btn);
+  }
+  t.classList.remove('opacity-0');
+  t.classList.add('opacity-100');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.classList.remove('opacity-100'); t.classList.add('opacity-0'); }, undoFn ? 6000 : 2400);
+}
+
+// ================= Init =================
+(async function init(){
+  document.getElementById('today-label').textContent =
+    new Date().toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long' });
+  await loadData();
+  render();
+})();
+</script>
+</body>
+</html>
