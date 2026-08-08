@@ -54,6 +54,7 @@
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
           <p class="text-xs text-slate-500 mb-1">Sequência atual</p>
           <p class="text-2xl font-bold text-slate-800" id="stat-streak">—</p>
+          <p class="text-xs text-emerald-600 mt-1 hidden" id="stat-streak-note"></p>
         </div>
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
           <p class="text-xs text-slate-500 mb-1">Concluído na semana</p>
@@ -62,6 +63,7 @@
         <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
           <p class="text-xs text-slate-500 mb-1">Curso(s) parado(s)</p>
           <p class="text-2xl font-bold text-slate-800" id="stat-stalled">—</p>
+          <p class="text-xs text-emerald-600 mt-1 hidden" id="stat-stalled-note"></p>
         </div>
       </div>
 
@@ -624,9 +626,26 @@ function computeNextStep(){
 function renderConstanciaModule(){
   const streak = computeStreak();
   document.getElementById('stat-streak').textContent = streak + (streak === 1 ? ' dia' : ' dias');
+  const streakNote = document.getElementById('stat-streak-note');
+  if (streak === 0) {
+    streakNote.textContent = 'Ainda dá tempo de começar hoje';
+    streakNote.classList.remove('hidden');
+  } else {
+    streakNote.classList.add('hidden');
+  }
+
   const wk = computeWeeklyProgress();
   document.getElementById('stat-week').textContent = wk.done + ' de ' + wk.total;
-  document.getElementById('stat-stalled').textContent = computeStalledCourses();
+
+  const stalled = computeStalledCourses();
+  document.getElementById('stat-stalled').textContent = stalled;
+  const stalledNote = document.getElementById('stat-stalled-note');
+  if (stalled > 0) {
+    stalledNote.textContent = 'Ainda dá tempo de retomar';
+    stalledNote.classList.remove('hidden');
+  } else {
+    stalledNote.classList.add('hidden');
+  }
   const next = computeNextStep();
   document.getElementById('stat-next').textContent = next || 'Nada agendado à frente';
 
