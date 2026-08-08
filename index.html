@@ -48,7 +48,44 @@
       </div>
     </div>
 
-    <!-- Meus Cursos: acesso rápido -->
+    <!-- Módulo de Constância -->
+    <div class="max-w-[1600px] mx-auto w-full px-4 sm:px-6 pt-4">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+          <p class="text-xs text-slate-500 mb-1">Sequência atual</p>
+          <p class="text-2xl font-bold text-slate-800" id="stat-streak">—</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+          <p class="text-xs text-slate-500 mb-1">Concluído na semana</p>
+          <p class="text-2xl font-bold text-slate-800" id="stat-week">—</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+          <p class="text-xs text-slate-500 mb-1">Curso(s) parado(s)</p>
+          <p class="text-2xl font-bold text-slate-800" id="stat-stalled">—</p>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-3.5 flex items-center gap-2.5 mb-3">
+        <i class="fa-solid fa-arrow-right text-emerald-600"></i>
+        <div>
+          <p class="text-xs text-slate-400 mb-0.5">Próximo passo</p>
+          <p class="text-sm text-slate-800" id="stat-next">—</p>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-2">
+            <i class="fa-solid fa-lightbulb text-emerald-600"></i>
+            <span class="text-sm font-semibold text-slate-800">O que vira minha vantagem esta semana</span>
+          </div>
+          <button id="btn-woop-update" class="text-xs px-2.5 py-1.5 rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50"><i class="fa-solid fa-rotate mr-1"></i>Atualizar</button>
+        </div>
+        <div id="woop-display"></div>
+      </div>
+    </div>
+
+
     <div class="max-w-[1600px] mx-auto w-full px-4 sm:px-6 pt-4">
       <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-3">
         <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 px-1">Meus cursos</h3>
@@ -253,6 +290,28 @@
     </div>
   </div>
 
+  <!-- Modal de WOOP -->
+  <div id="woop-modal" class="fixed inset-0 bg-slate-900/40 modal-backdrop hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-sm p-6 fade-in">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-bold text-slate-800">O que vira sua vantagem</h2>
+        <button id="woop-modal-close" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div id="woop-welcome" class="hidden bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-xs text-emerald-800 mb-3">
+        Nomear o que te trava não desanima — a pesquisa mostra o contrário: dá energia pra agir. É só o primeiro passo, não uma confissão.
+      </div>
+      <label class="text-xs font-semibold text-slate-500 uppercase">Percebi que</label>
+      <textarea id="woop-obstacle" rows="2" placeholder="Ex: procrastino à noite, depois do trabalho" class="w-full mt-1 border border-slate-300 rounded-lg px-3 py-2 text-sm"></textarea>
+      <label class="text-xs font-semibold text-slate-500 uppercase mt-3 block">Meu plano (se / então)</label>
+      <textarea id="woop-plan" rows="2" placeholder="Ex: se bater vontade de checar o celular, então deixo ele em outro cômodo" class="w-full mt-1 border border-slate-300 rounded-lg px-3 py-2 text-sm"></textarea>
+      <p id="woop-error" class="text-xs text-rose-600 hidden mt-1"></p>
+      <div class="flex items-center justify-end gap-2 mt-6">
+        <button id="woop-modal-cancel" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100">Cancelar</button>
+        <button id="woop-modal-save" class="px-4 py-2 rounded-lg text-sm font-medium bg-emerald-600 hover:bg-emerald-700 text-white">Salvar</button>
+      </div>
+    </div>
+  </div>
+
   <div id="toast" class="fixed bottom-5 right-5 bg-slate-900 text-white text-sm px-4 py-2.5 rounded-lg shadow-lg opacity-0 transition-opacity duration-300 z-50"></div>
 
 <script>
@@ -298,6 +357,8 @@ const DEFAULT_COMPETENCIES = [
 let COMPETENCIES = DEFAULT_COMPETENCIES.slice();
 let HISTORY = [];
 const HISTORY_LIMIT = 5;
+let WOOP = { obstacle:'', plan:'', updatedAt:null };
+function migrateWoop(w){ return (w && typeof w === 'object') ? { obstacle: w.obstacle || '', plan: w.plan || '', updatedAt: w.updatedAt || null } : { obstacle:'', plan:'', updatedAt:null }; }
 function migrateHistory(list){ return Array.isArray(list) ? list.slice(0, HISTORY_LIMIT) : []; }
 function logDeletion(entry){
   entry.id = uid();
@@ -420,6 +481,7 @@ async function loadData(){
         state.blocks = parsed.blocks || [];
         COMPETENCIES = migrateCompetencies(parsed.competencies);
         HISTORY = migrateHistory(parsed.history);
+        WOOP = migrateWoop(parsed.woop);
       } else {
         state.blocks = seedBlocks();
         await saveData();
@@ -446,6 +508,7 @@ async function loadData(){
       state.blocks = parsed.blocks || [];
       COMPETENCIES = migrateCompetencies(parsed.competencies);
       HISTORY = migrateHistory(parsed.history);
+      WOOP = migrateWoop(parsed.woop);
     } else {
       state.blocks = seedBlocks();
       await saveData();
@@ -457,7 +520,7 @@ async function loadData(){
 }
 
 async function saveData(){
-  const payload = { courses: state.courses, blocks: state.blocks, competencies: COMPETENCIES, history: HISTORY };
+  const payload = { courses: state.courses, blocks: state.blocks, competencies: COMPETENCIES, history: HISTORY, woop: WOOP };
 
   if (supabaseClient) {
     try {
@@ -507,7 +570,130 @@ function render(){
   renderCompetencyManageList();
   renderCoursesStrip();
   renderHistoryList();
+  renderConstanciaModule();
 }
+
+// ================= Módulo de Constância =================
+function computeStreak(){
+  const todayISO = fmtISO(new Date());
+  const scheduledDates = [...new Set(state.blocks.map(b => b.date))].filter(d => d <= todayISO).sort().reverse();
+  let streak = 0, misses = 0;
+  for (const date of scheduledDates) {
+    const dayBlocks = state.blocks.filter(b => b.date === date);
+    if (dayBlocks.some(b => b.done)) { streak++; misses = 0; }
+    else { misses++; if (misses >= 2) break; }
+  }
+  return streak;
+}
+function computeWeeklyProgress(){
+  const todayISO = fmtISO(new Date());
+  const start = fmtISO(startOfWeek(new Date()));
+  const relevant = state.blocks.filter(b => b.date >= start && b.date <= todayISO);
+  const done = relevant.filter(b => b.done).length;
+  return { done, total: relevant.length };
+}
+function computeStalledCourses(){
+  const todayISO = fmtISO(new Date());
+  const todayDate = new Date();
+  let count = 0;
+  state.courses.filter(c => c.active !== false).forEach(c => {
+    const past = state.blocks.filter(b => b.courseId === c.id && b.date <= todayISO).sort((a,b) => b.date.localeCompare(a.date));
+    if (past.length === 0) return;
+    const last = past[0];
+    if (!last.done) {
+      const daysSince = Math.floor((todayDate - new Date(last.date + 'T00:00:00')) / 86400000);
+      if (daysSince >= 7) count++;
+    }
+  });
+  return count;
+}
+function computeNextStep(){
+  const todayISO = fmtISO(new Date());
+  const upcoming = state.blocks
+    .filter(b => !b.done && (b.date > todayISO || b.date === todayISO))
+    .sort((a,b) => (a.date + a.start).localeCompare(b.date + b.start));
+  if (upcoming.length === 0) return null;
+  const b = upcoming[0];
+  const c = courseById(b.courseId);
+  let label;
+  if (b.date === todayISO) label = 'hoje';
+  else if (b.date === fmtISO(addDays(new Date(),1))) label = 'amanhã';
+  else { const d = new Date(b.date + 'T00:00:00'); label = String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0'); }
+  return (c ? c.name : 'Atividade') + ', ' + label + ' às ' + b.start;
+}
+function renderConstanciaModule(){
+  const streak = computeStreak();
+  document.getElementById('stat-streak').textContent = streak + (streak === 1 ? ' dia' : ' dias');
+  const wk = computeWeeklyProgress();
+  document.getElementById('stat-week').textContent = wk.done + ' de ' + wk.total;
+  document.getElementById('stat-stalled').textContent = computeStalledCourses();
+  const next = computeNextStep();
+  document.getElementById('stat-next').textContent = next || 'Nada agendado à frente';
+
+  const el = document.getElementById('woop-display');
+  el.innerHTML = '';
+  if (!WOOP.obstacle) {
+    const empty = document.createElement('p');
+    empty.className = 'text-xs text-slate-400';
+    empty.textContent = 'Ainda não preenchido. Clique em "Atualizar" pra começar.';
+    el.appendChild(empty);
+    return;
+  }
+  const obsLabel = document.createElement('p');
+  obsLabel.className = 'text-[11px] text-slate-400 mb-0.5';
+  obsLabel.textContent = 'Percebi que';
+  const obsText = document.createElement('p');
+  obsText.className = 'text-sm text-slate-800 mb-3';
+  obsText.textContent = WOOP.obstacle;
+  el.appendChild(obsLabel); el.appendChild(obsText);
+
+  if (WOOP.plan) {
+    const planBox = document.createElement('div');
+    planBox.className = 'bg-emerald-50 rounded-lg p-3';
+    planBox.innerHTML =
+      '<div class="flex items-center gap-1.5 mb-1"><i class="fa-solid fa-bolt text-emerald-600 text-xs"></i><span class="text-[11px] font-semibold text-emerald-700">Meu plano</span></div>' +
+      '<p class="text-sm text-slate-800">' + escapeHtml(WOOP.plan) + '</p>';
+    el.appendChild(planBox);
+  }
+  if (WOOP.updatedAt) {
+    const time = document.createElement('p');
+    time.className = 'text-[11px] text-slate-400 mt-3';
+    time.textContent = 'Atualizado ' + relativeTime(WOOP.updatedAt);
+    el.appendChild(time);
+  }
+}
+
+document.getElementById('btn-woop-update').onclick = () => {
+  document.getElementById('woop-welcome').classList.toggle('hidden', !!WOOP.obstacle);
+  document.getElementById('woop-obstacle').value = WOOP.obstacle || '';
+  document.getElementById('woop-plan').value = WOOP.plan || '';
+  document.getElementById('woop-error').classList.add('hidden');
+  document.getElementById('woop-modal').classList.remove('hidden');
+  document.getElementById('woop-modal').classList.add('flex');
+};
+function closeWoopModal(){
+  document.getElementById('woop-modal').classList.add('hidden');
+  document.getElementById('woop-modal').classList.remove('flex');
+}
+document.getElementById('woop-modal-close').onclick = closeWoopModal;
+document.getElementById('woop-modal-cancel').onclick = closeWoopModal;
+document.getElementById('woop-modal').addEventListener('click', (e) => { if (e.target.id === 'woop-modal') closeWoopModal(); });
+document.getElementById('woop-modal-save').onclick = async () => {
+  const obstacle = document.getElementById('woop-obstacle').value.trim();
+  const plan = document.getElementById('woop-plan').value.trim();
+  const errEl = document.getElementById('woop-error');
+  if (!obstacle || !plan) {
+    errEl.textContent = 'Preencha os dois campos.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+  errEl.classList.add('hidden');
+  WOOP = { obstacle, plan, updatedAt: Date.now() };
+  await saveData();
+  closeWoopModal();
+  renderConstanciaModule();
+  showToast('Salvo.');
+};
 
 function renderHistoryList(){
   const el = document.getElementById('history-list');
